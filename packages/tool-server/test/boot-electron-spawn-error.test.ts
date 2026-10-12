@@ -230,6 +230,25 @@ describe("bootElectronApp — spawn error handling", () => {
     await expect(promise).rejects.not.toThrow(/installed/);
   });
 
+  it("omits the install-electron hint when the launcher is the app's own binary", async () => {
+    const child = makeFakeChild();
+    spawnMock.mockReturnValue(child);
+
+    const promise = bootElectronApp({
+      appPath: path.join(appDir, "main.js"),
+      port: UNREACHABLE_CDP_PORT,
+      readyTimeoutMs: 30_000,
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
+    err.code = "ENOENT";
+    child.emit("error", err);
+
+    await expect(promise).rejects.toThrow(/main\.js \(ENOENT\)/);
+    await expect(promise).rejects.not.toThrow(/installed/);
+  });
+
   it("falls back to the no-pid rejection when a pidless child never emits 'error'", async () => {
     // Node always follows a missing pid with a next-tick 'error'; this pins the
     // bounded fallback for a runtime that breaks that contract.
