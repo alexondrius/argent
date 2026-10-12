@@ -11,7 +11,7 @@
  * cause and tells the agent how to fix it.
  */
 
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -101,6 +101,9 @@ vi.spyOn(process, "kill").mockImplementation(() => true);
 
 beforeEach(() => {
   spawnMock.mockReset();
+});
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("bootElectronApp — spawn error handling", () => {
@@ -224,28 +227,25 @@ describe("bootElectronApp — spawn error handling", () => {
     child.emit("error", err);
 
     await expect(promise).rejects.toThrow(/EACCES/);
+    await expect(promise).rejects.not.toThrow(/installed/);
   });
 
   it("falls back to the no-pid rejection when a pidless child never emits 'error'", async () => {
     // Node always follows a missing pid with a next-tick 'error'; this pins the
     // bounded fallback for a runtime that breaks that contract.
     vi.useFakeTimers({ toFake: ["setTimeout"] });
-    try {
-      spawnMock.mockReturnValue(makeFakeChild({ pid: undefined }));
+    spawnMock.mockReturnValue(makeFakeChild({ pid: undefined }));
 
-      const settled = bootElectronApp({
-        appPath: appDir,
-        port: UNREACHABLE_CDP_PORT,
-        readyTimeoutMs: 100,
-      }).catch((e: unknown) => e);
-      await vi.advanceTimersByTimeAsync(1000);
+    const settled = bootElectronApp({
+      appPath: appDir,
+      port: UNREACHABLE_CDP_PORT,
+      readyTimeoutMs: 100,
+    }).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(1000);
 
-      const signal = getFailureSignal(await settled);
-      expect(signal?.error_code).toBe(FAILURE_CODES.CHROMIUM_ELECTRON_SPAWN_FAILED);
-      expect(signal?.failure_stage).toBe("electron_spawn_no_pid");
-    } finally {
-      vi.useRealTimers();
-    }
+    const signal = getFailureSignal(await settled);
+    expect(signal?.error_code).toBe(FAILURE_CODES.CHROMIUM_ELECTRON_SPAWN_FAILED);
+    expect(signal?.failure_stage).toBe("electron_spawn_no_pid");
   });
 
   it("detaches BOTH boot listeners after successful boot — child outliving the function must not leak rejections", async () => {

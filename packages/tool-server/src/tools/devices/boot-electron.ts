@@ -320,13 +320,16 @@ export async function bootElectronApp(options: BootElectronOptions): Promise<Ele
   // ENOENT / EACCES / EAGAIN arrive as a deferred `error` event, and an
   // unhandled one crashes the whole tool-server (e.g. boot-device with
   // `electronAppPath` on a host without electron on PATH). Fold it into a
-  // rejection so the caller sees the errno and the install hint.
+  // rejection so the caller sees the errno.
   const onSpawnError = (err: NodeJS.ErrnoException, reject: (e: Error) => void) => {
     const codeSuffix = err.code ? ` (${err.code})` : "";
+    const installHint =
+      launcher.command === "electron" && err.code === "ENOENT"
+        ? ` Make sure 'electron' is installed (npm i electron in the app dir, or globally) and on PATH.`
+        : "";
     reject(
       new FailureError(
-        `Electron boot: failed to launch ${launcher.command}${codeSuffix}: ${err.message}. ` +
-          `Make sure 'electron' is installed (npm i electron in the app dir, or globally) and on PATH.`,
+        `Electron boot: failed to launch ${launcher.command}${codeSuffix}: ${err.message}.${installHint}`,
         {
           error_code: FAILURE_CODES.CHROMIUM_ELECTRON_SPAWN_FAILED,
           failure_stage: "electron_spawn_error",
