@@ -8,7 +8,7 @@
  * without electron on PATH.
  *
  * The boot promise must also reject (not hang), with a message that names the
- * cause and tells the agent how to fix it.
+ * cause.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
