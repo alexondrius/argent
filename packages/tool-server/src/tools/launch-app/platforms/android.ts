@@ -81,9 +81,12 @@ export async function resolveLauncherActivity(
   const launcher = await resolveFor();
   if (launcher) return launcher;
 
+  const pmPath = await adbShell(udid, `pm path ${shellQuote(bundleId)}; true`);
   throw new FailureError(
     `Could not resolve a ${isTv ? "LEANBACK_LAUNCHER or LAUNCHER" : "LAUNCHER"} activity for ${bundleId}. ` +
-      `Install the app first, or pass an explicit \`activity\`. ` +
+      (pmPath.includes("package:")
+        ? `It is installed but declares no such activity: pass an explicit \`activity\`. `
+        : `It is not installed on ${udid}: install it with \`reinstall-app\`. `) +
       `(resolve-activity output: ${lastRaw.trim() || "empty"})`,
     {
       error_code: FAILURE_CODES.ANDROID_LAUNCH_ACTIVITY_RESOLVE_FAILED,
