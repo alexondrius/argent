@@ -60,8 +60,7 @@ export async function resolveLauncherActivity(
   bundleId: string,
   isTv = false
 ): Promise<string> {
-  // Surfaced in the failure message: distinguishes empty output (app not
-  // installed) from a wrong component shape (only the system resolver matched).
+  // Surfaced in the failure message, e.g. to show only the system resolver matched.
   let lastRaw = "";
   const resolveFor = async (category?: string): Promise<string | null> => {
     const intent = category ? ` -c ${shellQuote(category)}` : "";
