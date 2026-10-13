@@ -272,8 +272,8 @@ export const jsRuntimeDebuggerBlueprint: ServiceBlueprint<JsRuntimeDebuggerApi, 
      * exception breakpoints a user set, from a tool they did not run. The client
      * that owns the session owns its global state.
      *
-     * The rest are unconditional. Enables are idempotent, and a binding only
-     * adds one. Other clients can ignore it by name.
+     * The remaining setup only affects Argent's client. Enables are idempotent,
+     * and a binding only adds one. Other clients can ignore it by name.
      */
     if (!proxied) {
       await cdp.send("FuseboxClient.setClientMetadata", {}).catch(ignore);
@@ -281,11 +281,18 @@ export const jsRuntimeDebuggerBlueprint: ServiceBlueprint<JsRuntimeDebuggerApi, 
 
     await cdp.send("ReactNativeApplication.enable", {}).catch(ignore);
     await cdp.send("Runtime.enable");
-    await cdp.send("Debugger.enable", { maxScriptsCacheSize: 100_000_000 });
+    const enableDebugger =
+      !!proxied || selected.target.reactNative?.capabilities?.nativeSourceCodeFetching === true;
+    // Legacy Metro inlines the full source map on Debugger.enable; Runtime supports our tools.
+    if (enableDebugger) {
+      await cdp.send("Debugger.enable", { maxScriptsCacheSize: 100_000_000 });
+    }
 
     if (!proxied) {
-      await cdp.send("Debugger.setPauseOnExceptions", { state: "none" });
-      await cdp.send("Debugger.setAsyncCallStackDepth", { maxDepth: 32 }).catch(ignore);
+      if (enableDebugger) {
+        await cdp.send("Debugger.setPauseOnExceptions", { state: "none" });
+        await cdp.send("Debugger.setAsyncCallStackDepth", { maxDepth: 32 }).catch(ignore);
+      }
       await cdp.send("Runtime.runIfWaitingForDebugger").catch(ignore);
     }
 

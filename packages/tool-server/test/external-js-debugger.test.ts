@@ -80,7 +80,10 @@ vi.mock("../src/utils/debugger/discovery", () => ({
         description: "",
         deviceName: "iPhone 16 Pro",
         id: "1",
-        reactNative: { capabilities: {}, logicalDeviceId: "logical-1" },
+        reactNative: {
+          capabilities: { nativeSourceCodeFetching: true },
+          logicalDeviceId: "logical-1",
+        },
         title: "com.example.app",
         webSocketDebuggerUrl: METRO_TARGET_URL,
       },
