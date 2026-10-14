@@ -27,7 +27,6 @@ let cdpConn: WebSocket | null = null;
 let mockPort: number;
 let registry: Registry;
 let sourceMapRequests = 0;
-let nativeSourceCodeFetching = true;
 
 function handleCDPMessage(ws: WebSocket, raw: string) {
   const msg = JSON.parse(raw);
@@ -139,7 +138,7 @@ beforeAll(async () => {
               webSocketDebuggerUrl: `ws://localhost:${mockPort}/inspector/debug?device=0&page=1`,
               deviceName: "MockDevice",
               reactNative: {
-                capabilities: { prefersFuseboxFrontend: true, nativeSourceCodeFetching },
+                capabilities: { prefersFuseboxFrontend: true },
               },
             },
           ])
@@ -215,9 +214,9 @@ describe("JsRuntimeDebugger integration (mock server)", () => {
 
     expect(result.status).toBe("connected");
     expect(result.connected).toBe(true);
-    expect(result.loadedScripts).toBeGreaterThanOrEqual(1);
+    expect(result.loadedScripts).toBe(0);
     expect(result.enabledDomains).toContain("Runtime");
-    expect(result.enabledDomains).toContain("Debugger");
+    expect(result.enabledDomains).not.toContain("Debugger");
   });
 
   it("debugger-evaluate executes JS and returns result", async () => {
@@ -230,8 +229,7 @@ describe("JsRuntimeDebugger integration (mock server)", () => {
     expect(result.result).toBe("eval-result-42");
   });
 
-  it("connects to legacy Metro without downloading unused source maps", async () => {
-    nativeSourceCodeFetching = false;
+  it("connects to Metro without downloading unused source maps", async () => {
     const before = sourceMapRequests;
     const result = (await registry.invokeTool("debugger-connect", {
       port: mockPort,

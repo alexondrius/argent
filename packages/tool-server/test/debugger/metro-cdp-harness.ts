@@ -48,10 +48,7 @@ export async function startMockMetroCdp(opts?: {
             webSocketDebuggerUrl: `ws://localhost:${port}/inspector/debug?device=0&page=1`,
             deviceName: "MockDevice",
             reactNative: {
-              capabilities: {
-                prefersFuseboxFrontend: true,
-                nativeSourceCodeFetching: true,
-              },
+              capabilities: { prefersFuseboxFrontend: true },
               ...(opts?.logicalDeviceId ? { logicalDeviceId: opts.logicalDeviceId } : {}),
             },
           },
