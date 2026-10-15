@@ -82,7 +82,7 @@ function handleCDPMessage(ws: WebSocket, raw: string) {
     ws.send(
       JSON.stringify(
         debuggerEnabled.has(ws)
-          ? { id, result: { result: { type: "string", value: "vega-eval-result" } } }
+          ? { id, result: { result: { type: "string", value: "legacy-eval-result" } } }
           : {
               id,
               error: {
@@ -162,7 +162,7 @@ describe("Vega target routing on a legacy Metro (no logicalDeviceId)", () => {
       device_id: VEGA_DEVICE_ID,
       expression: "1 + 1",
     });
-    expect(result).toMatchObject({ result: "vega-eval-result" });
+    expect(result).toMatchObject({ result: "legacy-eval-result" });
   });
 
   it("must NOT attach to the proxy's `don't use` page even if it is listed first", async () => {
@@ -217,4 +217,38 @@ describe("Vega target routing on a legacy Metro (no logicalDeviceId)", () => {
     expect(message).toContain("legacy inspector — no logicalDeviceId");
     expect(message).toContain("give it its own Metro port");
   });
+});
+
+// RN 0.72 uses the same legacy Hermes inspector on phones as on Vega.
+// Exercise ordinary device IDs so a Vega-only exception cannot hide this bug.
+describe("legacy Hermes evaluation on iOS/Android", () => {
+  it.each([
+    { platform: "Android", deviceId: "emulator-5554" },
+    { platform: "iOS", deviceId: "12345678-1234-1234-1234-123456789ABC" },
+  ])("evaluates on $platform without modern inspector metadata", async ({ deviceId }) => {
+    listTargets = [LEGACY_PHONE_TARGET];
+    await registry.invokeTool("debugger-connect", { port: mockPort, device_id: deviceId });
+    const result = await registry.invokeTool("debugger-evaluate", {
+      port: mockPort,
+      device_id: deviceId,
+      expression: "1 + 1",
+    });
+    expect(result).toMatchObject({ result: "legacy-eval-result" });
+  });
+
+  it.each([{}, { prefersFuseboxFrontend: false }])(
+    "still enables the legacy debugger with capabilities %j",
+    async (capabilities) => {
+      // Newer Metro versions add reactNative metadata even for legacy runtimes.
+      listTargets = [{ ...LEGACY_PHONE_TARGET, reactNative: { capabilities } }];
+      const deviceId = "emulator-5554";
+      await registry.invokeTool("debugger-connect", { port: mockPort, device_id: deviceId });
+      const result = await registry.invokeTool("debugger-evaluate", {
+        port: mockPort,
+        device_id: deviceId,
+        expression: "1 + 1",
+      });
+      expect(result).toMatchObject({ result: "legacy-eval-result" });
+    }
+  );
 });

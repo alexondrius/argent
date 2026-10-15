@@ -281,11 +281,12 @@ export const jsRuntimeDebuggerBlueprint: ServiceBlueprint<JsRuntimeDebuggerApi, 
 
     await cdp.send("ReactNativeApplication.enable", {}).catch(ignore);
     await cdp.send("Runtime.enable");
-    // Metro can inline a full source map on Debugger.enable. iOS/Android tools
-    // use Runtime and on-demand symbolication, so avoid that work on attach.
-    // Vega's Hermes requires Debugger.enable for evaluation; provider-owned
-    // connections retain their existing per-client debugger setup.
-    const enableDebugger = !!proxied || classifyDevice(deviceId) === "vega";
+    // Metro can inline a full source map on Debugger.enable. Only skip it for
+    // targets advertising the modern inspector: legacy Hermes (RN <= 0.72,
+    // including Vega) requires it for evaluation. A reactNative block alone
+    // does not prove the runtime uses the modern inspector.
+    const enableDebugger =
+      !!proxied || selected.target.reactNative?.capabilities?.prefersFuseboxFrontend !== true;
     if (enableDebugger) {
       await cdp.send("Debugger.enable", { maxScriptsCacheSize: 100_000_000 });
     }

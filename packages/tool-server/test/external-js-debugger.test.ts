@@ -81,7 +81,7 @@ vi.mock("../src/utils/debugger/discovery", () => ({
         deviceName: "iPhone 16 Pro",
         id: "1",
         reactNative: {
-          capabilities: {},
+          capabilities: { prefersFuseboxFrontend: true },
           logicalDeviceId: "logical-1",
         },
         title: "com.example.app",
